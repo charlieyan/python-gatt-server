@@ -13,7 +13,6 @@ import advertising
 import gatt_server
 import argparse
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--adapter-name', type=str, help='Adapter name', default='')

@@ -5,33 +5,25 @@ import dbus.mainloop.glib
 import dbus.service
 
 import array
-
 import functools
+from random import randint
+import exceptions
+import adapters
 
 try:
   from gi.repository import GObject
 except ImportError:
   import gobject as GObject
 
-from random import randint
-
-import exceptions
-import adapters
-
 BLUEZ_SERVICE_NAME = 'org.bluez'
 LE_ADVERTISING_MANAGER_IFACE = 'org.bluez.LEAdvertisingManager1'
 DBUS_OM_IFACE = 'org.freedesktop.DBus.ObjectManager'
 DBUS_PROP_IFACE = 'org.freedesktop.DBus.Properties'
-
 LE_ADVERTISEMENT_IFACE = 'org.bluez.LEAdvertisement1'
-
 GATT_MANAGER_IFACE = 'org.bluez.GattManager1'
-
 GATT_SERVICE_IFACE = 'org.bluez.GattService1'
-GATT_CHRC_IFACE =    'org.bluez.GattCharacteristic1'
-GATT_DESC_IFACE =    'org.bluez.GattDescriptor1'
-
-
+GATT_CHRC_IFACE = 'org.bluez.GattCharacteristic1'
+GATT_DESC_IFACE = 'org.bluez.GattDescriptor1'
 
 class Application(dbus.service.Object):
     """
@@ -55,7 +47,6 @@ class Application(dbus.service.Object):
     def GetManagedObjects(self):
         response = {}
         print('GetManagedObjects')
-
         for service in self.services:
             response[service.get_path()] = service.get_properties()
             chrcs = service.get_characteristics()
@@ -64,10 +55,7 @@ class Application(dbus.service.Object):
                 descs = chrc.get_descriptors()
                 for desc in descs:
                     response[desc.get_path()] = desc.get_properties()
-
         return response
-
-
 class Service(dbus.service.Object):
     """
     org.bluez.GattService1 interface implementation
@@ -116,8 +104,6 @@ class Service(dbus.service.Object):
             raise exceptions.InvalidArgsException()
 
         return self.get_properties()[GATT_SERVICE_IFACE]
-
-
 class Characteristic(dbus.service.Object):
     """
     org.bluez.GattCharacteristic1 interface implementation
@@ -193,8 +179,6 @@ class Characteristic(dbus.service.Object):
                          signature='sa{sv}as')
     def PropertiesChanged(self, interface, changed, invalidated):
         pass
-
-
 class Descriptor(dbus.service.Object):
     """
     org.bluez.GattDescriptor1 interface implementation
@@ -240,7 +224,6 @@ class Descriptor(dbus.service.Object):
         print('Default WriteValue called, returning error')
         raise exceptions.NotSupportedException()
 
-
 class HeartRateService(Service):
     """
     Fake Heart Rate Service that simulates a fake heart beat and control point
@@ -255,8 +238,6 @@ class HeartRateService(Service):
         self.add_characteristic(BodySensorLocationChrc(bus, 1, self))
         self.add_characteristic(HeartRateControlPointChrc(bus, 2, self))
         self.energy_expended = 0
-
-
 class HeartRateMeasurementChrc(Characteristic):
     HR_MSRMT_UUID = '00002a37-0000-1000-8000-00805f9b34fb'
 
@@ -313,8 +294,6 @@ class HeartRateMeasurementChrc(Characteristic):
 
         self.notifying = False
         self._update_hr_msrmt_simulation()
-
-
 class BodySensorLocationChrc(Characteristic):
     BODY_SNSR_LOC_UUID = '00002a38-0000-1000-8000-00805f9b34fb'
 
@@ -328,7 +307,6 @@ class BodySensorLocationChrc(Characteristic):
     def ReadValue(self, options):
         # Return 'Chest' as the sensor location.
         return [ 0x01 ]
-
 class HeartRateControlPointChrc(Characteristic):
     HR_CTRL_PT_UUID = '00002a39-0000-1000-8000-00805f9b34fb'
 
@@ -354,7 +332,6 @@ class HeartRateControlPointChrc(Characteristic):
         print('Energy Expended field reset!')
         self.service.energy_expended = 0
 
-
 class BatteryService(Service):
     """
     Fake Battery service that emulates a draining battery.
@@ -365,8 +342,6 @@ class BatteryService(Service):
     def __init__(self, bus, index):
         Service.__init__(self, bus, index, self.BATTERY_UUID, True)
         self.add_characteristic(BatteryLevelCharacteristic(bus, 0, self))
-
-
 class BatteryLevelCharacteristic(Characteristic):
     """
     Fake Battery Level characteristic. The battery level is drained by 2 points
@@ -420,7 +395,6 @@ class BatteryLevelCharacteristic(Characteristic):
 
         self.notifying = False
 
-
 class TestService(Service):
     """
     Dummy test service that provides characteristics and descriptors that
@@ -434,7 +408,6 @@ class TestService(Service):
         self.add_characteristic(TestCharacteristic(bus, 0, self))
         self.add_characteristic(TestEncryptCharacteristic(bus, 1, self))
         self.add_characteristic(TestSecureCharacteristic(bus, 2, self))
-
 class TestCharacteristic(Characteristic):
     """
     Dummy test characteristic. Allows writing arbitrary bytes to its value, and
@@ -461,8 +434,6 @@ class TestCharacteristic(Characteristic):
     def WriteValue(self, value, options):
         print('TestCharacteristic Write: ' + repr(value))
         self.value = value
-
-
 class TestDescriptor(Descriptor):
     """
     Dummy test descriptor. Returns a static value.
@@ -481,8 +452,6 @@ class TestDescriptor(Descriptor):
         return [
                 dbus.Byte('T'), dbus.Byte('e'), dbus.Byte('s'), dbus.Byte('t')
         ]
-
-
 class CharacteristicUserDescriptionDescriptor(Descriptor):
     """
     Writable CUD descriptor.
@@ -507,7 +476,6 @@ class CharacteristicUserDescriptionDescriptor(Descriptor):
         if not self.writable:
             raise exceptions.NotPermittedException()
         self.value = value
-
 class TestEncryptCharacteristic(Characteristic):
     """
     Dummy test characteristic requiring encryption.
@@ -533,7 +501,6 @@ class TestEncryptCharacteristic(Characteristic):
     def WriteValue(self, value, options):
         print('TestEncryptCharacteristic Write: ' + repr(value))
         self.value = value
-
 class TestEncryptDescriptor(Descriptor):
     """
     Dummy test descriptor requiring encryption. Returns a static value.
@@ -552,8 +519,6 @@ class TestEncryptDescriptor(Descriptor):
         return [
                 dbus.Byte('T'), dbus.Byte('e'), dbus.Byte('s'), dbus.Byte('t')
         ]
-
-
 class TestSecureCharacteristic(Characteristic):
     """
     Dummy test characteristic requiring secure connection.
@@ -579,8 +544,6 @@ class TestSecureCharacteristic(Characteristic):
     def WriteValue(self, value, options):
         print('TestSecureCharacteristic Write: ' + repr(value))
         self.value = value
-
-
 class TestSecureDescriptor(Descriptor):
     """
     Dummy test descriptor requiring secure connection. Returns a static value.
@@ -602,27 +565,20 @@ class TestSecureDescriptor(Descriptor):
 
 def register_app_cb():
     print('GATT application registered')
-
-
 def register_app_error_cb(mainloop, error):
     print('Failed to register application: ' + str(error))
     mainloop.quit()
-
-
 def gatt_server_main(mainloop, bus, adapter_name):
-    adapter = adapters.find_adapter(bus, GATT_MANAGER_IFACE, adapter_name)
+    adapter = adapters.find_adapter(bus,
+        GATT_MANAGER_IFACE, adapter_name)
     if not adapter:
         raise Exception('GattManager1 interface not found')
-
     service_manager = dbus.Interface(
-            bus.get_object(BLUEZ_SERVICE_NAME, adapter),
-            GATT_MANAGER_IFACE)
-
+        bus.get_object(BLUEZ_SERVICE_NAME, adapter),
+        GATT_MANAGER_IFACE)
     app = Application(bus)
-
     print('Registering GATT application...')
-
     service_manager.RegisterApplication(app.get_path(), {},
-                                    reply_handler=register_app_cb,
-                                    error_handler=functools.partial(register_app_error_cb, mainloop))
-
+        reply_handler=register_app_cb,
+        error_handler=functools.partial(
+            register_app_error_cb, mainloop))

@@ -4,18 +4,14 @@ import dbus.exceptions
 import dbus.mainloop.glib
 import dbus.service
 import functools
-
 import exceptions
 import adapters
-
 
 BLUEZ_SERVICE_NAME = 'org.bluez'
 LE_ADVERTISING_MANAGER_IFACE = 'org.bluez.LEAdvertisingManager1'
 DBUS_OM_IFACE = 'org.freedesktop.DBus.ObjectManager'
 DBUS_PROP_IFACE = 'org.freedesktop.DBus.Properties'
-
 LE_ADVERTISEMENT_IFACE = 'org.bluez.LEAdvertisement1'
-
 
 class Advertisement(dbus.service.Object):
     PATH_BASE = '/org/bluez/example/advertisement'
@@ -88,27 +84,20 @@ class Advertisement(dbus.service.Object):
                          out_signature='')
     def Release(self):
         print('%s: Released!' % self.path)
-
-
 class TestAdvertisement(Advertisement):
     def __init__(self, bus, index):
         Advertisement.__init__(self, bus, index, 'peripheral')
-        self.add_service_uuid('180D')
-        self.add_service_uuid('180F')
+        self.add_service_uuid('180D') # heart rate service
+        self.add_service_uuid('180F') # battery service
         self.add_manufacturer_data(0xffff, [0x00, 0x01, 0x02, 0x03, 0x04])
         self.add_service_data('9999', [0x00, 0x01, 0x02, 0x03, 0x04])
         self.include_tx_power = True
 
-
 def register_ad_cb():
     print('Advertisement registered')
-
-
 def register_ad_error_cb(mainloop, error):
     print('Failed to register advertisement: ' + str(error))
     mainloop.quit()
-
-
 def advertising_main(mainloop, bus, adapter_name):
     adapter = adapters.find_adapter(bus, LE_ADVERTISING_MANAGER_IFACE, adapter_name)
     print('adapter: %s' % (adapter,))
@@ -128,4 +117,3 @@ def advertising_main(mainloop, bus, adapter_name):
     ad_manager.RegisterAdvertisement(test_advertisement.get_path(), {},
                                      reply_handler=register_ad_cb,
                                      error_handler=functools.partial(register_ad_error_cb, mainloop))
-
